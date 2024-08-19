@@ -2,6 +2,9 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import re
+import logger
+from logger import log
+from requests.exceptions import HTTPError
 
 parseDataConfig = {
     "merojob": {
@@ -49,6 +52,29 @@ parseDataConfig = {
             },
             "multi": False
         }
+    },
+    "slicejob": {
+        "title": {
+            "tag": "li",
+            "kwargs": {
+                "class": "job_title"
+            },
+            "multi": False
+        },
+        "location": {
+            "tag": "li",
+            "kwargs": {
+                "class": "job_company"
+            },
+            "multi": False
+        },
+        "posted_on": {
+            "tag": "li",
+            "kwargs": {
+                "class": "job_postdate"
+            },
+            "multi": False
+        },
     }
 }
 
@@ -68,34 +94,67 @@ jobDataConfig = {
             "itemscope": "",
             "itemtype": "http://schema.org/JobPosting"
         },
-        "obj": {
-
-        }
+        "obj": {}
+    },
+    "slicejob": {
+        "tag": "div",
+        "kwargs": {
+            "id": "item_list"
+        },
+        "obj": {}
     }
 }
 
 keys = ["react", "python", "frontend"]
 # htmls = [""]
+# urls = ["https://www.jobejee.com/job-search?q="]
 urls = ["https://www.merojob.com/search/?q=",
-        "https://www.kumarijob.com/search?keywords="]
+        "https://www.kumarijob.com/search?keywords=",
+        "https://www.slicejob.com/jobs/search/?job_category=&submit=Search&job_tittle="
+        ]
+
 datas = list(map(lambda a: list(map(lambda b: b+a, urls)), keys))
-datas = [{"url": a, "key": re.search(
-    r"\.[a-zA-Z]*\.", a).group().replace(".", "")} for b in datas for a in b]
+datas = [{"url": a, "key": (re.search(
+    r"[^/www](\.)?[a-zA-Z]*\.", a) or "").group().replace(".", "")} for b in datas for a in b]
+
 job_data_json_list = []
 count = 1
 for data in datas:
-    soup = BeautifulSoup(requests.get(data["url"]).text, "lxml")
+    try:
+        response = requests.get(data["url"])
+        response.raise_for_status()
+    except HTTPError as http_err:
+        log(logger.Type.ERROR, f"{http_err}")
+        continue
+    except Exception as err:
+        log(logger.Type.ERROR, f"{err}")
+        continue
+
+    if not data["key"]:
+        log(logger.Type.ERROR, f"invalid key {data['key']}")
+        continue
+
+    if data["key"] not in jobDataConfig:
+        log(logger.Type.ERROR,
+            f"Configuration for key {data['key']} does not exist")
+        continue
+    soup = BeautifulSoup(response.text, "lxml")
+
     jobs = soup.find_all(jobDataConfig[data["key"]]["tag"],
                          jobDataConfig[data["key"]]["obj"], **jobDataConfig[data["key"]]["kwargs"])
     for job in jobs:
         print(f"found {count} job(s)")
-        count+=1
+        count += 1
         for k, v in parseDataConfig.items():
             if data["url"].lower().find(k) != -1:
                 job_data_json = {}
                 for kk, vv in v.items():
                     if not vv["multi"]:
-                        val = job.find(vv["tag"], **vv["kwargs"]).text
+                        val = job.find(vv["tag"], **vv["kwargs"])
+                        if val is not None:
+                            val=val.text
+                        else:
+                            continue
                         if "func" in vv:
                             val = vv["func"](val)
                         # print(kk, val.strip(), sep=":", end="\n")
@@ -129,5 +188,5 @@ for data in datas:
 
 with open("data.json", "w") as f:
     f.write(json.dumps(job_data_json_list))
-    f.close()
+
 print("Data has been stored in data.json")
