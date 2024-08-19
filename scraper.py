@@ -1,10 +1,10 @@
+import re
 from bs4 import BeautifulSoup
 import requests
-import json
-import re
+from requests.exceptions import HTTPError
+from bs4.element import Tag
 import logger
 from logger import log
-from requests.exceptions import HTTPError
 
 parseDataConfig = {
     "merojob": {
@@ -53,6 +53,21 @@ parseDataConfig = {
             },
             "multi": False,
             "func": lambda a: a.split(":")[-1]
+        },
+        "details": {
+            "tag": "h1",
+            "kwargs": {
+                "class": "text-primary font-weight-bold media-heading h4"
+            },
+            "multi": False,
+            "nested": {
+                "tag": "a",
+                "kwargs": {
+                    "class": ""
+                },
+                "multi": False,
+                "link": True,
+            }
         }
     },
     "kumarijob": {
@@ -152,6 +167,21 @@ urls = ["https://www.merojob.com/search/?q=",
 
 
 def scrape(keys):
+    def gen_nested(elem,vv):
+        attrs = {}
+        if "attrs" in vv:
+            attrs = vv["attrs"]
+        val = elem.find(vv["tag"], attrs, **vv["kwargs"])
+        if val is None:
+            return None
+        if "link" in vv and vv["link"]:
+            val = val["href"]
+        if "func" in vv:
+            val = vv["func"](val.text)
+        if "nested" in vv:
+            val = gen_nested(val,vv["nested"])
+        return val
+            
     keys = keys.split()
     datas = list(map(lambda a: list(map(lambda b: b+a, urls)), keys))
     datas = [{"url": a, "key": (re.search(
@@ -161,7 +191,7 @@ def scrape(keys):
     count = 1
     for data in datas:
         try:
-            response = requests.get(data["url"])
+            response = requests.get(data["url"],timeout=60)
             response.raise_for_status()
         except HTTPError as http_err:
             log(logger.Type.ERROR, f"{http_err}")
@@ -190,26 +220,20 @@ def scrape(keys):
                     job_data_json = {}
                     for kk, vv in v.items():
                         if not vv["multi"]:
-                            attrs = {}
-                            if "attrs" in vv:
-                                attrs = vv["attrs"]
-                            val = job.find(vv["tag"], attrs, **vv["kwargs"])
+                            val = gen_nested(job,vv)
+
+                             # print(kk, val.strip(), sep=":", end="\n")
                             if val is None:
                                 continue
-                            if "link" in vv and vv["link"]:
-                                val = val["href"]
-                            else:
-                                val = val.text
-                            if "func" in vv:
-                                val = vv["func"](val)
-                            # print(kk, val.strip(), sep=":", end="\n")
-                            job_data_json[kk] = val.strip()
+                            if isinstance(val,Tag):
+                                val = val.text.strip()
+                            job_data_json[kk] = val
                         else:
                             val = job.find(vv["tag"], **vv["kwargs"])
                             if val is not None:
-                                # print(f"{kk}:", end="")
-                                # print(*map(lambda a: a.text.strip(),
-                                #       val.find_all(vv["innerTag"], **vv["innerKwargs"])), sep=",")
+                    # print(f"{kk}:", end="")
+                    # print(*map(lambda a: a.text.strip(),
+                    #       val.find_all(vv["innerTag"], **vv["innerKwargs"])), sep=",")
                                 job_data_json[kk] = list(map(lambda a: a.text.strip(
                                 ), val.find_all(vv["innerTag"], **vv["innerKwargs"])))
                     # print("\n")
@@ -231,7 +255,3 @@ def scrape(keys):
 
         # print("\n\n")
     return job_data_json_list
-
-
-
-
