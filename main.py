@@ -1,7 +1,8 @@
-from bs4 import BeautifulSoup
+import scraper
+import json
 
-with open("home.html","r") as html_file:
-    content = html_file.read()
-    soup = BeautifulSoup(content, "lxml")
-    # print(*map(lambda x : x.text,soup.find_all("h1")),sep="\n")
-    print(*map(lambda x : f'{x.h1.text} costs {x.button.text.split()[-1]}',soup.find_all("div",class_="w-[500px]")),sep="\n")
+if __name__ == "__main__":
+    with open("data.json", "w") as f:
+        f.write(json.dumps(scraper.scrape(input("Enter keywords:"))))
+        print("Data has been stored in data.json")
+        
