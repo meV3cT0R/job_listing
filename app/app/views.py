@@ -6,13 +6,13 @@ sys.path.append("..")
 from scraper import scrape
 
 def home(request):
-    form = SearchForm()
-    return render(request,"home2.html",{"form" : form})
-    
-
-def output(request):
     form = SearchForm(request.GET)
     if not form.is_valid():
-        return HttpResponseRedirect("home")
+        form = SearchForm()
+        data = []
+        return render(request,"home2.html",{"form" : form,"data" : data})
     data = scrape(form.cleaned_data["search"])
-    return render(request,"output.html",{"data" : data})
+    return render(request,"home2.html",{"form" : form,"data" : data})
+    
+
+    

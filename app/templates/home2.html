@@ -12,5 +12,15 @@ Scraper
             search
         </button>
     </form>
+
+    <div class="grid grid-cols-3 w-[70%] mx-auto gap-8">
+        {% for d in data %}
+            <div class="py-2 px-5 border-2 border rounded-lg">
+                <h1 class="text-3xl"> {{ d.title }} </h1>
+                <p class="text-lg text-gray-500"> {{ d.org }} </h1>
+                <a src={{d}}> more info</a>
+            </div>
+        {% endfor %}
+        </div>
 {%endblock%}
 

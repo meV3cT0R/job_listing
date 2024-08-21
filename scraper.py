@@ -167,7 +167,7 @@ urls = ["https://www.merojob.com/search/?q=",
 
 
 def scrape(keys):
-    def gen_nested(elem,vv):
+    def gen_nested(elem, vv):
         attrs = {}
         if "attrs" in vv:
             attrs = vv["attrs"]
@@ -179,9 +179,26 @@ def scrape(keys):
         if "func" in vv:
             val = vv["func"](val.text)
         if "nested" in vv:
-            val = gen_nested(val,vv["nested"])
+            val = gen_nested(val, vv["nested"])
         return val
-            
+
+    def get_json_data(v):
+        job_data_json = {}
+        for kk, vv in v.items():
+            if not vv["multi"]:
+                val = gen_nested(job, vv)
+                if val is None:
+                    continue
+                if isinstance(val, Tag):
+                    val = val.text.strip()
+                    job_data_json[kk] = val
+            else:
+                val = job.find(vv["tag"], **vv["kwargs"])
+                if val is not None:
+                    job_data_json[kk] = list(map(lambda a: a.text.strip(
+                    ), val.find_all(vv["innerTag"], **vv["innerKwargs"])))
+        return job_data_json
+
     keys = keys.split()
     datas = list(map(lambda a: list(map(lambda b: b+a, urls)), keys))
     datas = [{"url": a, "key": (re.search(
@@ -191,7 +208,7 @@ def scrape(keys):
     count = 1
     for data in datas:
         try:
-            response = requests.get(data["url"],timeout=60)
+            response = requests.get(data["url"], timeout=60)
             response.raise_for_status()
         except HTTPError as http_err:
             log(logger.Type.ERROR, f"{http_err}")
@@ -217,41 +234,7 @@ def scrape(keys):
             count += 1
             for k, v in parseDataConfig.items():
                 if data["url"].lower().find(k) != -1:
-                    job_data_json = {}
-                    for kk, vv in v.items():
-                        if not vv["multi"]:
-                            val = gen_nested(job,vv)
-
-                             # print(kk, val.strip(), sep=":", end="\n")
-                            if val is None:
-                                continue
-                            if isinstance(val,Tag):
-                                val = val.text.strip()
-                            job_data_json[kk] = val
-                        else:
-                            val = job.find(vv["tag"], **vv["kwargs"])
-                            if val is not None:
-                    # print(f"{kk}:", end="")
-                    # print(*map(lambda a: a.text.strip(),
-                    #       val.find_all(vv["innerTag"], **vv["innerKwargs"])), sep=",")
-                                job_data_json[kk] = list(map(lambda a: a.text.strip(
-                                ), val.find_all(vv["innerTag"], **vv["innerKwargs"])))
-                    # print("\n")
+                    job_data_json = get_json_data(v)
                     job_data_json_list.append(job_data_json)
                     break
-            # job_org = job.find("h3",class_="h6")
-
-            # job_medias = job.find_all("div",class_="media")[-1].find("div",class_="media-body").find("span",itemprop="skills")
-
-            # job_title = job_title.text.strip()
-            # job_org =job_org.text.strip()
-
-            # print("Title",job_title,sep=":")
-            # print("Org.",job_org,sep=":")
-            # print("Skills:",end="")
-            # if job_medias is not None:
-            #     job_medias = filter(lambda a : len(a.strip())!=0,job_medias.text.split("\n"))
-            #     print(*job_medias,sep=",",end="\n\n")
-
-        # print("\n\n")
     return job_data_json_list
