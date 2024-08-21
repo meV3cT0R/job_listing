@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+Scraper
+{%endblock%}
+
+{% block content %}
+    <form action="{% url 'search' %}" method="GET">
+        {% csrf_token %}
+        {{ form }}
+        <button>
+            search
+        </button>
+    </form>
+{%endblock%}
+
