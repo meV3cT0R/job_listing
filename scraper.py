@@ -27,7 +27,7 @@ def scrape(keys):
     def get_json_data(v):
         job_data_json = {}
         for kk, vv in v.items():
-            if not vv["multi"]:
+            if "multi" not in vv or not vv["multi"]:
                 val = gen_nested(job, vv)
                 if val is None:
                     continue

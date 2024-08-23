@@ -6,19 +6,18 @@ Scraper
 
 {% block content %}
     <form action="{% url 'search' %}" method="GET">
-        {% csrf_token %}
         {{ form }}
         <button>
             search
         </button>
     </form>
 
-    <div class="grid grid-cols-3 w-[70%] mx-auto gap-8">
+    <div class="grid grid-cols-2 md:grid-cols-3 w-[90%] md:w-[70%] mx-auto gap-8">
         {% for d in data %}
             <div class="py-2 px-5 border-2 border rounded-lg">
                 <h1 class="text-3xl"> {{ d.title }} </h1>
                 <p class="text-lg text-gray-500"> {{ d.org }} </h1>
-                <a src={{d}}> more info</a>
+                <a href="{{d.details}}" class="block bg-blue-500 border border-2 rounded-lg text-white hover:bg-blue-700 duration-300 cursor-pointer px-5 py-2"> more info</a>
             </div>
         {% endfor %}
         </div>

@@ -122,6 +122,20 @@ parseDataConfig = {
             },
             "multi": False
         },
+        "details" : {
+            "tag" : "div",
+            "kwargs" : {
+                "class" : "col-xs-12 col-md-2"
+                },
+
+            "nested" : {
+                "tag" : "a",
+                "kwargs" : {
+                    "class" : "btn btn-view-detail col-xs-6 col-sm-12"
+                    },
+                "link" : True
+                }
+            }
     }
 }
 
