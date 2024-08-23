@@ -60,6 +60,7 @@ parseDataConfig = {
                     "class": ""
                 },
                 "multi": False,
+                "url" : "https://merojob.com",
                 "link": True,
             }
         }

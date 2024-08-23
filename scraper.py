@@ -8,7 +8,6 @@ from logger import log
 from config import parseDataConfig,jobDataConfig,urls
 
 
-
 def scrape(keys):
     def gen_nested(elem, vv):
         attrs = {}
@@ -18,7 +17,7 @@ def scrape(keys):
         if val is None:
             return None
         if "link" in vv and vv["link"]:
-            val = val["href"]
+            val = (vv["url"] if "url" in vv else "") + val["href"]
         if "func" in vv:
             val = vv["func"](val.text)
         if "nested" in vv:
@@ -34,7 +33,7 @@ def scrape(keys):
                     continue
                 if isinstance(val, Tag):
                     val = val.text.strip()
-                    job_data_json[kk] = val
+                job_data_json[kk] = val
             else:
                 val = job.find(vv["tag"], **vv["kwargs"])
                 if val is not None:
